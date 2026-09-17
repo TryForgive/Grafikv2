@@ -48,19 +48,18 @@ def main():
         print("Logowanie do portalu...")
         page.goto("https://panelpracownika.rossmann.pl/")
 
-        # Wypełnienie formularza logowania
-        page.fill("#login", LOGIN)
-        page.fill("#password", PASSWORD)
+       # Wypełnienie formularza logowania - uderzamy bezpośrednio w tag 'input'
+        page.fill("input#login", LOGIN)
+        page.fill("input#password", PASSWORD)
         
         pesel_inputs = page.locator(".pesel-input").all()
         for index, input_field in enumerate(pesel_inputs):
             if input_field.is_enabled():
                 input_field.fill(PESEL[index])
 
-        page.click('[data-testid="main-login-submit-btn"]')
+        # Precyzyjne kliknięcie w tag 'button'
+        page.click('button[data-testid="main-login-submit-btn"]')
         page.wait_for_load_state("networkidle")
-        
-        print("Przechodzenie do grafiku...")
         # Bezpośrednie przejście do modułu drogerii i grafiku
         page.goto("https://panelpracownika.rossmann.pl/management-shop-module/#/schedule")
         
