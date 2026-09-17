@@ -48,14 +48,24 @@ def main():
         print("Logowanie do portalu...")
         page.goto("https://panelpracownika.rossmann.pl/")
 
-        # Wypełnienie formularza logowania (uderzamy precyzyjnie w tagi input)
-        page.fill("input#login", LOGIN)
-        page.fill("input#password", PASSWORD)
+        # Czyszczenie ukrytych spacji ze zmiennych
+        czysty_login = LOGIN.strip() if LOGIN else ""
+        czysty_haslo = PASSWORD.strip() if PASSWORD else ""
+        czysty_pesel = PESEL.strip() if PESEL else ""
+
+        # Wypełnienie formularza logowania
+        page.fill("input#login", czysty_login)
+        page.fill("input#password", czysty_haslo)
         
+        # Odszukanie pól PESEL
         pesel_inputs = page.locator(".pesel-input").all()
         for index, input_field in enumerate(pesel_inputs):
             if input_field.is_enabled():
-                input_field.fill(PESEL[index])
+                # Zamiast .fill() wymuszamy kliknięcie w pole i fizyczne naciśnięcie klawisza
+                input_field.click()
+                page.keyboard.type(czysty_pesel[index], delay=100)
+                # Dajemy Angularowi ułamek sekundy na reakcję (np. przeskoczenie na następne pole)
+                page.wait_for_timeout(200)
 
         # Precyzyjne kliknięcie w przycisk
         page.click('button[data-testid="main-login-submit-btn"]')
@@ -72,7 +82,6 @@ def main():
                 print("Sprawdź poprawność wpisanych zmiennych w GitHub Secrets.")
                 browser.close()
                 exit(1)
-        
         print("Przechodzenie do grafiku...")
         page.goto("https://panelpracownika.rossmann.pl/management-shop-module/#/schedule")
         
