@@ -48,7 +48,7 @@ def main():
         print("Logowanie do portalu...")
         page.goto("https://panelpracownika.rossmann.pl/")
 
-       # Wypełnienie formularza logowania - uderzamy bezpośrednio w tag 'input'
+        # Wypełnienie formularza logowania (uderzamy precyzyjnie w tagi input)
         page.fill("input#login", LOGIN)
         page.fill("input#password", PASSWORD)
         
@@ -57,15 +57,36 @@ def main():
             if input_field.is_enabled():
                 input_field.fill(PESEL[index])
 
-        # Precyzyjne kliknięcie w tag 'button'
+        # Precyzyjne kliknięcie w przycisk
         page.click('button[data-testid="main-login-submit-btn"]')
-        page.wait_for_load_state("networkidle")
-        # Bezpośrednie przejście do modułu drogerii i grafiku
+        
+        # WAŻNE: Dajemy stronie 4 sekundy na autoryzację i przetworzenie logowania
+        page.wait_for_timeout(4000)
+        
+        # Diagnostyka: Sprawdzenie, czy formularz nie zwrócił błędu na czerwono
+        error_element = page.locator(".error-message")
+        if error_element.is_visible():
+            error_text = error_element.inner_text().strip()
+            if error_text:
+                print(f"!!! BŁĄD LOGOWANIA OD SERWERA: {error_text} !!!")
+                print("Sprawdź poprawność wpisanych zmiennych w GitHub Secrets.")
+                browser.close()
+                exit(1)
+        
+        print("Przechodzenie do grafiku...")
         page.goto("https://panelpracownika.rossmann.pl/management-shop-module/#/schedule")
         
-        # Oczekujemy aż tabela grafiku pojawi się w kodzie HTML
-        page.wait_for_selector("table.ross-table")
-        page.wait_for_load_state("networkidle")
+        try:
+            # Czekamy na załadowanie głównej tabeli z grafikiem (max 20 sekund)
+            page.wait_for_selector("table.ross-table", timeout=20000)
+        except Exception as e:
+            print("!!! BŁĄD: Tabela nie załadowała się na czas !!!")
+            print("--- CO AKTUALNIE WIDZI BOT NA EKRANIE? (Początek strony) ---")
+            # Drukujemy do logów zawartość ekranu, by wiedzieć na czym utknął
+            print(page.locator("body").inner_text()[:1500])
+            print("----------------------------------------------------------")
+            browser.close()
+            raise e
 
         print("Parsowanie grafiku...")
         cal = Calendar()
@@ -78,13 +99,11 @@ def main():
         rows = page.locator("tbody.ross-table__body tr.ross-table__row").all()
         
         for row in rows:
-            # Używamy atrybutów data-label aby precyzyjnie trafić w odpowiednie kolumny
             date_str = row.locator('td[data-label="Dzień"]').inner_text().strip()
             time_str = row.locator('td[data-label="Od - Do"]').inner_text().strip()
             summary = row.locator('td[data-label="Czynność"]').inner_text().strip()
             
-            # Dodajemy do kalendarza tylko te dni, w których jest przypisana jakakolwiek czynność
-            # (To pomija dni wolne oznaczane na czerwono/szaro, które nie mają wpisu w kolumnie Czynność)
+            # Dodajemy do kalendarza tylko te dni, w których przypisana jest czynność
             if date_str and summary:
                 event = create_event(date_str, time_str, summary)
                 cal.add_component(event)
