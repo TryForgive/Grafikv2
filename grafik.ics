@@ -102,7 +102,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:Praca
 DTSTART;TZID=Europe/Warsaw:20260919T070000
-DTEND;TZID=Europe/Warsaw:20260919T143000
+DTEND;TZID=Europe/Warsaw:20260919T150000
 UID:rossmann-2026-09-19-Praca@grafik
 END:VEVENT
 BEGIN:VEVENT
@@ -154,3 +154,9 @@ DTEND;VALUE=DATE:20261001
 UID:rossmann-2026-09-30-Odbiórzasobotę@grafik
 END:VEVENT
 END:VCALENDAR
+
+
+================= HISTORIA ZMIAN =================
+
+Aktualizacja: 2026-09-19 09:07:32
+- Dzień: "2026-09-19" Godziny "Praca 07:00 - 14:30" zmieniono na Godziny "Praca 07:00 - 15:00"
