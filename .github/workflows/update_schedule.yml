@@ -31,6 +31,7 @@ jobs:
           MY_LOGIN: ${{ secrets.MY_LOGIN }}
           MY_PASSWORD: ${{ secrets.MY_PASSWORD }}
           MY_PESEL: ${{ secrets.MY_PESEL }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python scraper.py
         
       - name: Zapisanie pliku .ics do repozytorium
