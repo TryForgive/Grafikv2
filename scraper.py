@@ -1,5 +1,7 @@
 import os
 import datetime
+import urllib.request
+import json
 import pytz
 from icalendar import Calendar, Event
 from playwright.sync_api import sync_playwright
@@ -7,8 +9,32 @@ from playwright.sync_api import sync_playwright
 PESEL = os.environ.get("MY_PESEL")
 LOGIN = os.environ.get("MY_LOGIN")
 PASSWORD = os.environ.get("MY_PASSWORD")
+
+# Adres Webhooka z Discorda
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+
 TZ = pytz.timezone("Europe/Warsaw")
 HISTORY_SEPARATOR = b"\n\n================= HISTORIA ZMIAN =================\n"
+
+def send_discord_notification(message):
+    if not DISCORD_WEBHOOK_URL:
+        return
+    try:
+        # Formatowanie wiadomości dla Discorda
+        payload = {
+            "content": f"🚨 **Zmiana w grafiku Rossmann!**\n```{message}```"
+        }
+        data = json.dumps(payload).encode("utf-8")
+        
+        req = urllib.request.Request(
+            DISCORD_WEBHOOK_URL, 
+            data=data, 
+            headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+        )
+        urllib.request.urlopen(req)
+        print("Wysłano powiadomienie na Discord.")
+    except Exception as e:
+        print(f"Błąd wysyłania powiadomienia Discord: {e}")
 
 def create_event(date_str, time_str, summary):
     event = Event()
@@ -40,7 +66,6 @@ def main():
     old_schedule = {}
     history_content = b""
 
-    # 1. Wczytanie poprzedniego stanu grafiku, aby mieć z czym porównać
     if os.path.exists('grafik.ics'):
         try:
             with open('grafik.ics', 'rb') as f:
@@ -56,7 +81,6 @@ def main():
                 start = component.get('dtstart').dt
                 summary = str(component.get('summary'))
                 
-                # Zapisujemy stary stan w czytelnym formacie
                 if type(start) is datetime.date:
                     date_str = start.strftime("%Y-%m-%d")
                     old_schedule[date_str] = summary
@@ -66,7 +90,7 @@ def main():
                     date_str = start_local.strftime("%Y-%m-%d")
                     old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
         except Exception as e:
-            print(f"Informacja: Tworzenie pliku od zera lub błąd odczytu starego pliku: {e}")
+            print(f"Informacja: Tworzenie pliku od zera lub błąd odczytu: {e}")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -129,7 +153,6 @@ def main():
             if not date_str:
                 continue
                 
-            # Ustalenie "Stanu" aby móc porównać z poprzednią wersją
             if summary == "" and time_str == "":
                 new_state = "Dzień wolny"
             elif "00:00" in time_str or summary in ["Urlop Wypoczynkowy", "Odbiór za sobotę"]:
@@ -143,17 +166,13 @@ def main():
                     
             new_schedule[date_str] = new_state
             
-            # Wpis do kalendarza
             if summary and date_str:
                 event = create_event(date_str, time_str, summary)
                 if event.get('dtstart'):
                     cal.add_component(event)
 
-        # 2. Detekcja zmian między starym a nowym grafikiem
         changes = []
         for date_str in sorted(new_schedule.keys()):
-            # Jeśli dnia w ogóle nie było w starym grafiku, ignorujemy go z logów (to nowy miesiąc)
-            # Logujemy tylko dni, które istniały wcześniej i ich wartość uległa zmianie
             if date_str in old_schedule:
                 old_state = old_schedule[date_str]
                 new_state = new_schedule[date_str]
@@ -161,17 +180,21 @@ def main():
                 if old_state != new_state:
                     changes.append(f'Dzień: "{date_str}" Godziny "{old_state}" zmieniono na Godziny "{new_state}"')
         
-        # Jeśli wykryto zmiany, doklejamy je na koniec bloku tekstowego
         if changes:
             now_str = datetime.datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
             history_content += f"\nAktualizacja: {now_str}\n".encode('utf-8')
+            
+            notification_text = f"Aktualizacja: {now_str}\n"
             for change in changes:
                 history_content += f"- {change}\n".encode('utf-8')
+                notification_text += f"- {change}\n"
                 print(f"WYKRYTO ZMIANĘ: {change}")
+            
+            # Wysłanie powiadomienia na Discord
+            send_discord_notification(notification_text)
         else:
             print("Brak nowych zmian w grafiku.")
 
-        # 3. Zapis do pliku: najpierw kod kalendarza, potem separator i czysty tekst ze zmianami
         with open('grafik.ics', 'wb') as f:
             f.write(cal.to_ical())
             if history_content:
