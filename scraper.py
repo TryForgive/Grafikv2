@@ -114,7 +114,7 @@ def main():
                 page.wait_for_timeout(200)
 
         page.click('button[data-testid="main-login-submit-btn"]')
-        page.wait_for_timeout(4000)
+        page.wait_for_timeout(10000)
         
         error_element = page.locator(".error-message")
         if error_element.is_visible():
