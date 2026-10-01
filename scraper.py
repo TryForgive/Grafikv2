@@ -10,7 +10,6 @@ PESEL = os.environ.get("MY_PESEL")
 LOGIN = os.environ.get("MY_LOGIN")
 PASSWORD = os.environ.get("MY_PASSWORD")
 
-# Adres Webhooka z Discorda
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
 
 TZ = pytz.timezone("Europe/Warsaw")
@@ -20,7 +19,6 @@ def send_discord_notification(message):
     if not DISCORD_WEBHOOK_URL:
         return
     try:
-        # Formatowanie wiadomości dla Discorda
         payload = {
             "content": f"🚨 **Zmiana w grafiku Rossmann!**\n```{message}```"
         }
@@ -53,8 +51,16 @@ def create_event(date_str, time_str, summary):
             start_time = times[0].strip()
             end_time = times[1].strip()
             try:
+                # Parsujemy daty i godziny
                 start_dt = TZ.localize(datetime.datetime.strptime(f"{date_str} {start_time}", "%Y-%m-%d %H:%M"))
                 end_dt = TZ.localize(datetime.datetime.strptime(f"{date_str} {end_time}", "%Y-%m-%d %H:%M"))
+                
+                # OBSŁUGA ZMIAN NOCNYCH (przechodzących przez północ, np. 19:00 - 03:00)
+                # Jeśli godzina zakończenia jest mniejsza lub równa godzinie rozpoczęcia,
+                # oznacza to, że koniec następuje następnego dnia kalendarzowego.
+                if end_dt <= start_dt:
+                    end_dt += datetime.timedelta(days=1)
+                
                 event.add('dtstart', start_dt)
                 event.add('dtend', end_dt)
             except Exception as e:
@@ -88,7 +94,12 @@ def main():
                     start_local = start.astimezone(TZ)
                     end_local = component.get('dtend').dt.astimezone(TZ)
                     date_str = start_local.strftime("%Y-%m-%d")
-                    old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
+                    
+                    # Uwzględniamy formatowanie nocy także w odczycie starej historii do porównań
+                    if end_local.date() > start_local.date():
+                        old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')} ((+1d))"
+                    else:
+                        old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
         except Exception as e:
             print(f"Informacja: Tworzenie pliku od zera lub błąd odczytu: {e}")
 
@@ -114,7 +125,7 @@ def main():
                 page.wait_for_timeout(200)
 
         page.click('button[data-testid="main-login-submit-btn"]')
-        page.wait_for_timeout(10000)
+        page.wait_for_timeout(4000)
         
         error_element = page.locator(".error-message")
         if error_element.is_visible():
@@ -160,7 +171,13 @@ def main():
             else:
                 times = time_str.replace("–", "-").split("-")
                 if len(times) == 2:
-                    new_state = f"{summary} {times[0].strip()} - {times[1].strip()}"
+                    st_t = times[0].strip()
+                    en_t = times[1].strip()
+                    # Sprawdzamy czy zmiana przechodzi przez północ na potrzeby historii
+                    if en_t <= st_t:
+                        new_state = f"{summary} {st_t} - {en_t} (nocna)"
+                    else:
+                        new_state = f"{summary} {st_t} - {en_t}"
                 else:
                     new_state = f"{summary} {time_str}"
                     
@@ -190,7 +207,6 @@ def main():
                 notification_text += f"- {change}\n"
                 print(f"WYKRYTO ZMIANĘ: {change}")
             
-            # Wysłanie powiadomienia na Discord
             send_discord_notification(notification_text)
         else:
             print("Brak nowych zmian w grafiku.")
