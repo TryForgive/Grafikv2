@@ -51,13 +51,9 @@ def create_event(date_str, time_str, summary):
             start_time = times[0].strip()
             end_time = times[1].strip()
             try:
-                # Parsujemy daty i godziny
                 start_dt = TZ.localize(datetime.datetime.strptime(f"{date_str} {start_time}", "%Y-%m-%d %H:%M"))
                 end_dt = TZ.localize(datetime.datetime.strptime(f"{date_str} {end_time}", "%Y-%m-%d %H:%M"))
                 
-                # OBSŁUGA ZMIAN NOCNYCH (przechodzących przez północ, np. 19:00 - 03:00)
-                # Jeśli godzina zakończenia jest mniejsza lub równa godzinie rozpoczęcia,
-                # oznacza to, że koniec następuje następnego dnia kalendarzowego.
                 if end_dt <= start_dt:
                     end_dt += datetime.timedelta(days=1)
                 
@@ -95,9 +91,9 @@ def main():
                     end_local = component.get('dtend').dt.astimezone(TZ)
                     date_str = start_local.strftime("%Y-%m-%d")
                     
-                    # Uwzględniamy formatowanie nocy także w odczycie starej historii do porównań
+                    # POPRAWKA: Tutaj ujednoliciliśmy nazwę na "(nocna)" zamiast "((+1d))"
                     if end_local.date() > start_local.date():
-                        old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')} ((+1d))"
+                        old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')} (nocna)"
                     else:
                         old_schedule[date_str] = f"{summary} {start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
         except Exception as e:
@@ -173,7 +169,6 @@ def main():
                 if len(times) == 2:
                     st_t = times[0].strip()
                     en_t = times[1].strip()
-                    # Sprawdzamy czy zmiana przechodzi przez północ na potrzeby historii
                     if en_t <= st_t:
                         new_state = f"{summary} {st_t} - {en_t} (nocna)"
                     else:
