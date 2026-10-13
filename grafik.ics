@@ -60,7 +60,7 @@ END:VEVENT
 BEGIN:VEVENT
 SUMMARY:Praca
 DTSTART;TZID=Europe/Warsaw:20261012T190000
-DTEND;TZID=Europe/Warsaw:20261013T030000
+DTEND;TZID=Europe/Warsaw:20261013T040000
 UID:rossmann-2026-10-12-Praca@grafik
 END:VEVENT
 BEGIN:VEVENT
@@ -166,3 +166,6 @@ Aktualizacja: 2026-10-01 18:43:49
 
 Aktualizacja: 2026-10-10 22:16:23
 - Dzień: "2026-10-10" Godziny "Praca 15:00 - 21:30" zmieniono na Godziny "Praca 13:00 - 21:30"
+
+Aktualizacja: 2026-10-13 13:31:00
+- Dzień: "2026-10-12" Godziny "Praca 19:00 - 03:00 (nocna)" zmieniono na Godziny "Praca 19:00 - 04:00 (nocna)"
