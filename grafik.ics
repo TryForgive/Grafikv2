@@ -10,10 +10,10 @@ DTEND;TZID=Europe/Warsaw:20261001T150000
 UID:rossmann-2026-10-01-Praca@grafik
 END:VEVENT
 BEGIN:VEVENT
-SUMMARY:Praca
-DTSTART;TZID=Europe/Warsaw:20261002T090000
-DTEND;TZID=Europe/Warsaw:20261002T160000
-UID:rossmann-2026-10-02-Praca@grafik
+SUMMARY:Odbiór za sobotę
+DTSTART;VALUE=DATE:20261002
+DTEND;VALUE=DATE:20261003
+UID:rossmann-2026-10-02-Odbiórzasobotę@grafik
 END:VEVENT
 BEGIN:VEVENT
 SUMMARY:Praca
@@ -169,3 +169,6 @@ Aktualizacja: 2026-10-10 22:16:23
 
 Aktualizacja: 2026-10-13 13:31:00
 - Dzień: "2026-10-12" Godziny "Praca 19:00 - 03:00 (nocna)" zmieniono na Godziny "Praca 19:00 - 04:00 (nocna)"
+
+Aktualizacja: 2026-10-14 15:26:03
+- Dzień: "2026-10-02" Godziny "Praca 09:00 - 16:00" zmieniono na Godziny "Odbiór za sobotę"
